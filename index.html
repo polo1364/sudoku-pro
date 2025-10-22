@@ -70,7 +70,6 @@ button:hover { background: #0056b3; }
     <option value="easy">簡單</option>
     <option value="medium">中等</option>
     <option value="hard">困難</option>
-    <option value="extreme">地獄</option>
   </select>
   <button onclick="newGame()">新題目</button>
   <button onclick="getHint()">💡 提示</button>
@@ -85,6 +84,7 @@ button:hover { background: #0056b3; }
 <script>
 let puzzle=[], solution=[], hintsLeft=3, timerInterval, startTime;
 const deepCopy=b=>JSON.parse(JSON.stringify(b));
+
 function isSafe(board,row,col,num){
   for(let i=0;i<9;i++)
     if(board[row][i]===num||board[i][col]===num)return false;
@@ -111,46 +111,25 @@ function solve(board){
   }
   return true;
 }
-function hasUniqueSolution(board){
-  let count=0;
-  function solveCount(b){
-    for(let r=0;r<9;r++){
-      for(let c=0;c<9;c++){
-        if(b[r][c]===0){
-          for(let n=1;n<=9;n++){
-            if(isSafe(b,r,c,n)){
-              b[r][c]=n;
-              solveCount(b);
-              b[r][c]=0;
-            }
-          }
-          return;
-        }
-      }
-    }
-    count++;
-    if(count>1)return;
-  }
-  solveCount(board);
-  return count===1;
-}
+
 function generateSudoku(difficulty){
   let board=Array.from({length:9},()=>Array(9).fill(0));
   solve(board);
   const solved=deepCopy(board);
-  let removeCount={easy:35,medium:45,hard:55,extreme:60}[difficulty];
-  while(removeCount>0){
+  const removeMap={easy:35,medium:45,hard:52};
+  let removeCount=removeMap[difficulty]||45;
+  let attempts=0;
+  while(removeCount>0 && attempts<200){
+    attempts++;
     let r=Math.floor(Math.random()*9),c=Math.floor(Math.random()*9);
     if(board[r][c]!==0){
-      const temp=board[r][c];
       board[r][c]=0;
-      const copy=deepCopy(board);
-      if(!hasUniqueSolution(copy)){board[r][c]=temp;continue;}
       removeCount--;
     }
   }
   return {puzzle:board,solution:solved};
 }
+
 function drawBoard(){
   const board=document.getElementById("board");
   board.innerHTML="";
@@ -173,6 +152,7 @@ function drawBoard(){
     }
   }
 }
+
 function onInput(e){
   const cell=e.target;
   const v=cell.value.replace(/[^1-9]/g,"");
@@ -182,9 +162,11 @@ function onInput(e){
     cell.style.background="#f8d7da";
   else cell.style.background="white";
 }
+
 function getCell(r,c){
   return document.querySelector(`.cell[data-row='${r}'][data-col='${c}']`);
 }
+
 function getHint(){
   if(hintsLeft<=0){alert("提示次數已用完");return;}
   let empties=[];
@@ -199,6 +181,7 @@ function getHint(){
   cell.style.background="#fff3cd";
   hintsLeft--;
 }
+
 function checkBoard(){
   let correct=true;
   document.querySelectorAll(".cell").forEach(cell=>{
@@ -212,6 +195,7 @@ function checkBoard(){
   msg.textContent=correct?"🎉 完成！":"❌ 尚未正確";
   if(correct){clearInterval(timerInterval);localStorage.clear();}
 }
+
 function resetGame(){
   document.querySelectorAll(".cell").forEach(cell=>{
     if(!cell.disabled){
@@ -223,6 +207,7 @@ function resetGame(){
   startTimer();
   document.getElementById("message").textContent="";
 }
+
 function newGame(){
   const diff=document.getElementById("difficulty").value;
   const data=generateSudoku(diff);
@@ -232,6 +217,7 @@ function newGame(){
   startTimer();
   document.getElementById("message").textContent=`新題目（${diff}）已生成`;
 }
+
 function startTimer(){
   clearInterval(timerInterval);
   startTime=Date.now();
