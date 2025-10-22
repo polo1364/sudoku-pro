@@ -72,7 +72,7 @@ button:hover { background: #0056b3; }
     <option value="hard">困難</option>
   </select>
   <button onclick="newGame()">新題目</button>
-  <button onclick="getHint()">💡 提示</button>
+  <button id="hintBtn" onclick="getHint()">💡 提示（6）</button>
   <button onclick="checkBoard()">檢查</button>
   <button onclick="resetGame()">重玩</button>
 </div>
@@ -167,6 +167,10 @@ function getCell(r,c){
   return document.querySelector(`.cell[data-row='${r}'][data-col='${c}']`);
 }
 
+function updateHintButton(){
+  document.getElementById("hintBtn").textContent = `💡 提示（${hintsLeft}）`;
+}
+
 function getHint(){
   if(hintsLeft<=0){alert("提示次數已用完");return;}
   let empties=[];
@@ -180,6 +184,7 @@ function getHint(){
   cell.value=solution[pick.r][pick.c];
   cell.style.background="#fff3cd";
   hintsLeft--;
+  updateHintButton();
   document.getElementById("message").textContent = `💡 剩餘提示次數：${hintsLeft}`;
 }
 
@@ -199,6 +204,7 @@ function checkBoard(){
 
 function resetGame(){
   hintsLeft = 6;
+  updateHintButton();
   document.querySelectorAll(".cell").forEach(cell=>{
     if(!cell.disabled){
       cell.value="";
@@ -217,6 +223,7 @@ function newGame(){
   localStorage.clear();
   hintsLeft = 6;
   drawBoard();
+  updateHintButton();
   startTimer();
   document.getElementById("message").textContent=`新題目（${diff}）已生成（💡 可用提示：6次）`;
 }
