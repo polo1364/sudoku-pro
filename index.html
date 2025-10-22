@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sudoku 數獨遊戲 Pro+</title>
+<style>
+body {
+  font-family: "Microsoft JhengHei", sans-serif;
+  background: #f4f5f7;
+  text-align: center;
+  padding: 10px;
+}
+h1 { color: #007bff; }
+#board {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 2px;
+  max-width: 360px;
+  margin: 10px auto;
+  border: 3px solid #333;
+  background: #333;
+}
+.cell {
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  font-size: 18px;
+  border: none;
+  outline: none;
+  background: #fff;
+}
+.cell:disabled { background: #e9ecef; font-weight: bold; color: #000; }
+#controls { margin: 10px 0; }
+button, select {
+  margin: 5px;
+  padding: 6px 10px;
+  font-size: 15px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: #007bff;
+  color: #fff;
+}
+button:hover { background: #0056b3; }
+#timer { margin-top: 8px; color: #333; font-weight: bold; }
+#message { margin-top: 8px; font-weight: bold; color: #28a745; }
+@media (max-width:600px){
+  .cell{width:34px;height:34px;font-size:16px;}
+  #board{max-width:310px;}
+}
+</style>
+</head>
+<body>
+<h1>🧩 Sudoku 數獨遊戲 Pro+</h1>
+
+<div id="controls">
+  <select id="difficulty">
+    <option value="easy">簡單</option>
+    <option value="medium">中等</option>
+    <option value="hard">困難</option>
+    <option value="extreme">地獄</option>
+  </select>
+  <button onclick="newGame()">新題目</button>
+  <button onclick="getHint()">💡 提示</button>
+  <button onclick="checkBoard()">檢查</button>
+  <button onclick="resetGame()">重玩</button>
+</div>
+
+<div id="board"></div>
+<div id="timer">時間：00:00</div>
+<div id="message"></div>
+
+<script>
+let puzzle=[], solution=[], hintsLeft=3, timerInterval, startTime;
+const deepCopy=b=>JSON.parse(JSON.stringify(b));
+function isSafe(board,row,col,num){
+  for(let i=0;i<9;i++)
+    if(board[row][i]===num||board[i][col]===num)return false;
+  const sr=Math.floor(row/3)*3,sc=Math.floor(col/3)*3;
+  for(let i=0;i<3;i++)
+    for(let j=0;j<3;j++)
+      if(board[sr+i][sc+j]===num)return false;
+  return true;
+}
+function solve(board){
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+      if(board[r][c]===0){
+        for(let n=1;n<=9;n++){
+          if(isSafe(board,r,c,n)){
+            board[r][c]=n;
+            if(solve(board))return true;
+            board[r][c]=0;
+          }
+        }
+        return false;
+      }
+    }
+  }
+  return true;
+}
+function hasUniqueSolution(board){
+  let count=0;
+  function solveCount(b){
+    for(let r=0;r<9;r++){
+      for(let c=0;c<9;c++){
+        if(b[r][c]===0){
+          for(let n=1;n<=9;n++){
+            if(isSafe(b,r,c,n)){
+              b[r][c]=n;
+              solveCount(b);
+              b[r][c]=0;
+            }
+          }
+          return;
+        }
+      }
+    }
+    count++;
+    if(count>1)return;
+  }
+  solveCount(board);
+  return count===1;
+}
+function generateSudoku(difficulty){
+  let board=Array.from({length:9},()=>Array(9).fill(0));
+  solve(board);
+  const solved=deepCopy(board);
+  let removeCount={easy:35,medium:45,hard:55,extreme:60}[difficulty];
+  while(removeCount>0){
+    let r=Math.floor(Math.random()*9),c=Math.floor(Math.random()*9);
+    if(board[r][c]!==0){
+      const temp=board[r][c];
+      board[r][c]=0;
+      const copy=deepCopy(board);
+      if(!hasUniqueSolution(copy)){board[r][c]=temp;continue;}
+      removeCount--;
+    }
+  }
+  return {puzzle:board,solution:solved};
+}
+function drawBoard(){
+  const board=document.getElementById("board");
+  board.innerHTML="";
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+      const cell=document.createElement("input");
+      cell.className="cell";
+      cell.type="text";
+      cell.maxLength=1;
+      cell.dataset.row=r;cell.dataset.col=c;
+      const val=puzzle[r][c];
+      if(val!==0){cell.value=val;cell.disabled=true;}
+      else{
+        const key=`cell_${r}_${c}`;
+        const saved=localStorage.getItem(key);
+        if(saved)cell.value=saved;
+        cell.addEventListener("input",onInput);
+      }
+      board.appendChild(cell);
+    }
+  }
+}
+function onInput(e){
+  const cell=e.target;
+  const v=cell.value.replace(/[^1-9]/g,"");
+  cell.value=v;
+  localStorage.setItem(`cell_${cell.dataset.row}_${cell.dataset.col}`,v);
+  if(v && v!=solution[cell.dataset.row][cell.dataset.col])
+    cell.style.background="#f8d7da";
+  else cell.style.background="white";
+}
+function getCell(r,c){
+  return document.querySelector(`.cell[data-row='${r}'][data-col='${c}']`);
+}
+function getHint(){
+  if(hintsLeft<=0){alert("提示次數已用完");return;}
+  let empties=[];
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+    const input=getCell(r,c);
+    if(!input.disabled && input.value==="")empties.push({r,c});
+  }
+  if(empties.length===0){alert("沒有可提示的空格！");return;}
+  const pick=empties[Math.floor(Math.random()*empties.length)];
+  const cell=getCell(pick.r,pick.c);
+  cell.value=solution[pick.r][pick.c];
+  cell.style.background="#fff3cd";
+  hintsLeft--;
+}
+function checkBoard(){
+  let correct=true;
+  document.querySelectorAll(".cell").forEach(cell=>{
+    const r=cell.dataset.row,c=cell.dataset.col;
+    if(!cell.disabled){
+      if(Number(cell.value)!==solution[r][c]){correct=false;cell.style.background="#f8d7da";}
+      else cell.style.background="#d4edda";
+    }
+  });
+  const msg=document.getElementById("message");
+  msg.textContent=correct?"🎉 完成！":"❌ 尚未正確";
+  if(correct){clearInterval(timerInterval);localStorage.clear();}
+}
+function resetGame(){
+  document.querySelectorAll(".cell").forEach(cell=>{
+    if(!cell.disabled){
+      cell.value="";
+      cell.style.background="white";
+      localStorage.removeItem(`cell_${cell.dataset.row}_${cell.dataset.col}`);
+    }
+  });
+  startTimer();
+  document.getElementById("message").textContent="";
+}
+function newGame(){
+  const diff=document.getElementById("difficulty").value;
+  const data=generateSudoku(diff);
+  puzzle=data.puzzle;solution=data.solution;
+  localStorage.clear();
+  drawBoard();
+  startTimer();
+  document.getElementById("message").textContent=`新題目（${diff}）已生成`;
+}
+function startTimer(){
+  clearInterval(timerInterval);
+  startTime=Date.now();
+  timerInterval=setInterval(()=>{
+    const elapsed=Math.floor((Date.now()-startTime)/1000);
+    const m=String(Math.floor(elapsed/60)).padStart(2,"0");
+    const s=String(elapsed%60).padStart(2,"0");
+    document.getElementById("timer").textContent=`時間：${m}:${s}`;
+  },1000);
+}
+newGame();
+</script>
+</body>
+</html>
