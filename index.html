@@ -11,26 +11,36 @@ body {
   text-align: center;
   padding: 10px;
 }
-h1 { color: #007bff; }
+h1 { color: #007bff; margin: 10px 0; }
+
 #board {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
-  gap: 2px;
+  gap: 0;
   max-width: 360px;
   margin: 10px auto;
   border: 3px solid #333;
-  background: #333;
 }
 .cell {
   width: 40px;
   height: 40px;
   text-align: center;
   font-size: 18px;
-  border: none;
+  border: 1px solid #ccc;
   outline: none;
   background: #fff;
+  box-sizing: border-box;
 }
-.cell:disabled { background: #e9ecef; font-weight: bold; color: #000; }
+.cell:disabled {
+  background: #e9ecef;
+  font-weight: bold;
+  color: #000;
+}
+.cell[data-row="2"],
+.cell[data-row="5"] { border-bottom: 3px solid #333; }
+.cell[data-col="2"],
+.cell[data-col="5"] { border-right: 3px solid #333; }
+
 #controls { margin: 10px 0; }
 button, select {
   margin: 5px;
@@ -43,6 +53,7 @@ button, select {
   color: #fff;
 }
 button:hover { background: #0056b3; }
+
 #timer { margin-top: 8px; color: #333; font-weight: bold; }
 #message { margin-top: 8px; font-weight: bold; color: #28a745; }
 @media (max-width:600px){
