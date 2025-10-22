@@ -82,7 +82,7 @@ button:hover { background: #0056b3; }
 <div id="message"></div>
 
 <script>
-let puzzle=[], solution=[], hintsLeft=3, timerInterval, startTime;
+let puzzle=[], solution=[], hintsLeft=6, timerInterval, startTime;
 const deepCopy=b=>JSON.parse(JSON.stringify(b));
 
 function isSafe(board,row,col,num){
@@ -180,6 +180,7 @@ function getHint(){
   cell.value=solution[pick.r][pick.c];
   cell.style.background="#fff3cd";
   hintsLeft--;
+  document.getElementById("message").textContent = `💡 剩餘提示次數：${hintsLeft}`;
 }
 
 function checkBoard(){
@@ -197,6 +198,7 @@ function checkBoard(){
 }
 
 function resetGame(){
+  hintsLeft = 6;
   document.querySelectorAll(".cell").forEach(cell=>{
     if(!cell.disabled){
       cell.value="";
@@ -205,7 +207,7 @@ function resetGame(){
     }
   });
   startTimer();
-  document.getElementById("message").textContent="";
+  document.getElementById("message").textContent="💡 提示次數已重置為 6 次";
 }
 
 function newGame(){
@@ -213,9 +215,10 @@ function newGame(){
   const data=generateSudoku(diff);
   puzzle=data.puzzle;solution=data.solution;
   localStorage.clear();
+  hintsLeft = 6;
   drawBoard();
   startTimer();
-  document.getElementById("message").textContent=`新題目（${diff}）已生成`;
+  document.getElementById("message").textContent=`新題目（${diff}）已生成（💡 可用提示：6次）`;
 }
 
 function startTimer(){
